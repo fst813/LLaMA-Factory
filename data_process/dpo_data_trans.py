@@ -15,12 +15,13 @@ def read_json(file_path):
 
 
 if __name__ == '__main__':
+    data = read_json("806_predict.json")
     data_final = []
     for item in data:
         good = item["rank"][0]
         bad = item["rank"][-1]
         item["chosen"] = good
-        i["rejected"] = bad
-        data_final.append(i)
+        item["rejected"] = bad
+        data_final.append(item)
     with open("preference_data.json", "w", encoding="utf-8") as f:
         json.dump(data_final, f, ensure_ascii=False, indent=4)
