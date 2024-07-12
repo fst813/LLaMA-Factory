@@ -1,5 +1,5 @@
 MODEL_PATH="Meta-Llama-3-8B-Instruct/"
-train_data_path="orpo_train.json"
+train_data_path="806_error_correct.json"
 lora_output_dir="orpo_output"
 template="llama3"
 train_CUDA_VISIBLE_DEVICES="0,1"
