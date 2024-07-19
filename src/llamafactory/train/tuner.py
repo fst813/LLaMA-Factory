@@ -15,7 +15,7 @@
 import os
 import shutil
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-
+import time
 import torch
 from transformers import PreTrainedModel
 
@@ -31,7 +31,7 @@ from .ppo import run_ppo
 from .pt import run_pt
 from .rm import run_rm
 from .sft import run_sft
-
+import os
 
 if TYPE_CHECKING:
     from transformers import TrainerCallback
@@ -40,10 +40,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallback"] = []) -> None:
-    callbacks.append(LogCallback())
-    model_args, data_args, training_args, finetuning_args, generating_args = get_train_args(args)
-
+def run_exe(model_args, data_args, training_args, finetuning_args, generating_args, callbacks):
     if finetuning_args.stage == "pt":
         run_pt(model_args, data_args, training_args, finetuning_args, callbacks)
     elif finetuning_args.stage == "sft":
@@ -57,7 +54,86 @@ def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallb
     elif finetuning_args.stage == "kto":
         run_kto(model_args, data_args, training_args, finetuning_args, callbacks)
     else:
-        raise ValueError("Unknown task: {}.".format(finetuning_args.stage))
+        raise ValueError("Unknown task.")
+
+
+def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallback"] = []) -> None:
+    callbacks.append(LogCallback())
+    model_args, data_args, training_args, finetuning_args, generating_args = get_train_args(args)
+    if training_args.predict_with_generate:
+        # iif training_args.predict_with_generate:
+        if model_args.adapter_name_or_path:
+            if not os.path.exists(training_args.output_dir):
+                os.makedirs(training_args.output_dir)
+            folder_path = model_args.adapter_name_or_path.copy()[0]
+            while True:
+                file_all = os.listdir(training_args.output_dir)
+                checkpoint_nums = []
+                for file in file_all:
+                    if file.endswith("jsonl"):
+                        checkpoint_nums.append(file.split("-")[-1].split(".")[0])
+
+                checkpoints = []
+                for item in os.listdir(folder_path):
+                    if os.path.isdir(os.path.join(folder_path, item)) and item.startswith("checkpoint-"):
+                        checkpoints.append(item)
+                checkpoints.sort(key=lambda x: int(x.split("-")[-1]))
+                checkpoint_dir = []
+                for checkpoint in checkpoints[:-1]:
+                    checkpoint_dir.append(os.path.join(folder_path, checkpoint))
+                for item in checkpoint_dir:
+                    # if not (24000<int(item.split("-")[-1]) <= 26000):
+                    #    continue
+                    if item.split("-")[-1] in checkpoint_nums:
+                        # logger.info(" Existed, skip generating for checkpoint %s", model_args.checkpoint_dir)
+                        continue
+
+                    else:
+                        model_args.adapter_name_or_path = [item]
+                    run_exe(model_args, data_args, training_args, finetuning_args, generating_args, callbacks)
+                print("sleep 1min", flush=True)
+                time.sleep(60)
+        else:
+            # base or full
+            if finetuning_args.finetuning_type == "full":
+                if not os.path.exists(training_args.output_dir):
+                    os.makedirs(training_args.output_dir)
+                folder_path = model_args.model_name_or_path
+                while True:
+                    file_all = os.listdir(training_args.output_dir)
+                    checkpoint_nums = []
+                    for file in file_all:
+                        if file.endswith("jsonl"):
+                            checkpoint_nums.append(file.split("-")[-1].split(".")[0])
+
+                    checkpoints = []
+                    for item in os.listdir(folder_path):
+                        if os.path.isdir(os.path.join(folder_path, item)) and item.startswith("checkpoint-"):
+                            checkpoints.append(item)
+                    checkpoints.sort(key=lambda x: int(x.split("-")[-1]))
+                    checkpoint_dir = []
+                    for checkpoint in checkpoints[:-1]:
+                        checkpoint_dir.append(os.path.join(folder_path, checkpoint))
+                    for item in checkpoint_dir:
+                        if item.split("-")[-1] in checkpoint_nums:
+                            # logger.info(" Existed, skip generating for checkpoint %s", model_args.checkpoint_dir)
+                            continue
+
+                        # if int(item.split("-")[-1])%200==0:
+                        #    continue
+                        # if int(item.split("-")[-1])!=3500:
+                        #     continue
+                        else:
+                            model_args.model_name_or_path = item
+                        print("###########")
+                        print(model_args.model_name_or_path)
+                        run_exe(model_args, data_args, training_args, finetuning_args, generating_args, callbacks)
+            else:
+                run_exe(model_args, data_args, training_args, finetuning_args, generating_args, callbacks)
+
+
+    else:
+        run_exe(model_args, data_args, training_args, finetuning_args, generating_args, callbacks)
 
 
 def export_model(args: Optional[Dict[str, Any]] = None) -> None:
@@ -75,23 +151,22 @@ def export_model(args: Optional[Dict[str, Any]] = None) -> None:
     get_template_and_fix_tokenizer(tokenizer, data_args.template)
     model = load_model(tokenizer, model_args, finetuning_args)  # must after fixing tokenizer to resize vocab
 
-    if getattr(model, "quantization_method", None) is not None and model_args.adapter_name_or_path is not None:
+    if getattr(model, "quantization_method", None) and model_args.adapter_name_or_path is not None:
         raise ValueError("Cannot merge adapters to a quantized model.")
 
     if not isinstance(model, PreTrainedModel):
         raise ValueError("The model is not a `PreTrainedModel`, export aborted.")
 
-    if getattr(model, "quantization_method", None) is not None:  # quantized model adopts float16 type
-        setattr(model.config, "torch_dtype", torch.float16)
-    else:
-        if model_args.infer_dtype == "auto":
-            output_dtype = getattr(model.config, "torch_dtype", torch.float16)
-        else:
-            output_dtype = getattr(torch, model_args.infer_dtype)
-
+    if getattr(model, "quantization_method", None) is None:  # cannot convert dtype of a quantized model
+        if model_args.merge_dtype == "fp16":
+            output_dtype = torch.float16
+        elif model_args.merge_dtype == "bf16":
+            output_dtype = torch.bfloat16
+        # output_dtype = getattr(model.config, "torch_dtype", torch.float16)
         setattr(model.config, "torch_dtype", output_dtype)
         model = model.to(output_dtype)
-        logger.info("Convert model dtype to: {}.".format(output_dtype))
+    else:
+        setattr(model.config, "torch_dtype", torch.float16)
 
     model.save_pretrained(
         save_directory=model_args.export_dir,

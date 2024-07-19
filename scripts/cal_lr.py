@@ -44,7 +44,6 @@ def calculate_lr(
     template: str = "default",
     cutoff_len: int = 1024,  # i.e. maximum input length during training
     is_mistral: bool = False,  # mistral model uses a smaller learning rate,
-    packing: bool = False,
 ):
     r"""
     Calculates the optimal learning rate for 7B/13B models using LLaMA's hyper-parameters.
@@ -58,7 +57,6 @@ def calculate_lr(
             dataset_dir=dataset_dir,
             template=template,
             cutoff_len=cutoff_len,
-            packing=packing,
             output_dir="dummy_dir",
             overwrite_cache=True,
         )
@@ -71,7 +69,7 @@ def calculate_lr(
     elif stage == "sft":
         data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer, label_pad_token_id=IGNORE_INDEX)
     else:
-        raise NotImplementedError("Stage does not supported: {}.".format(stage))
+        raise NotImplementedError
 
     dataloader = DataLoader(trainset, batch_size, shuffle=False, collate_fn=data_collator, pin_memory=True)
     valid_tokens, total_tokens = 0, 0

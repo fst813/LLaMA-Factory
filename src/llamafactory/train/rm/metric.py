@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TYPE_CHECKING, Dict
+from typing import Dict, Sequence, Tuple, Union
 
 import numpy as np
 
 
-if TYPE_CHECKING:
-    from transformers import EvalPrediction
-
-
-def compute_accuracy(eval_preds: "EvalPrediction") -> Dict[str, float]:
-    return {"accuracy": np.mean(eval_preds.predictions[0] > eval_preds.predictions[1])}
+def compute_accuracy(eval_preds: Sequence[Union[np.ndarray, Tuple[np.ndarray]]]) -> Dict[str, float]:
+    preds, _ = eval_preds
+    return {"accuracy": (preds[0] > preds[1]).sum() / len(preds[0])}

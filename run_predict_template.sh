@@ -1,0 +1,19 @@
+CUDA_VISIBLE_DEVICES=$eval_CUDA_VISIBLE_DEVICES python3 src/train.py \
+    --stage sft \
+    --adapter_name_or_path $lora_output_dir \
+    --model_name_or_path $MODEL_PATH \
+    --do_predict \
+    --fp16 \
+    --dataset tmp_eval \
+    --template $template \
+    --flash_attn off \
+    --cutoff_len 4096 \
+    --use_fast_tokenizer False \
+    --finetuning_type lora \
+    --lora_target all \
+    --output_dir $predict_result_dir \
+    --per_device_eval_batch_size 5 \
+    --max_samples 1000000 \
+    --do_sample False \
+    --max_new_tokens 512 \
+    --predict_with_generate

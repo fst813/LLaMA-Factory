@@ -399,6 +399,26 @@ _register_template(
 
 
 _register_template(
+    name="codellama",
+    #format_user=StringFormatter(slots=[{"bos_token"}, "[INST] {{content}} [/INST]"]),
+    format_user=StringFormatter(slots=["<s>[INST] {{content}} [/INST]"]),
+)
+
+
+_register_template(
+    name="llama3",
+    format_user=StringFormatter(
+        slots=[
+            "<|start_header_id|>user<|end_header_id|>\n\n{{content}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+        ]
+    ),
+    format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),
+    format_separator=EmptyFormatter(slots=["<|eot_id|>"]),
+    efficient_eos=True,
+)
+
+
+_register_template(
     name="aquila",
     format_user=StringFormatter(slots=["Human: {{content}}###Assistant:"]),
     format_separator=EmptyFormatter(slots=["###"]),
@@ -507,23 +527,6 @@ _register_template(
 _register_template(
     name="codegeex2",
     format_prefix=EmptyFormatter(slots=[{"token": "[gMASK]"}, {"token": "sop"}]),
-)
-
-
-_register_template(
-    name="codegeex4",
-    format_user=StringFormatter(slots=["<|user|>\n{{content}}<|assistant|>\n"]),
-    format_system=StringFormatter(slots=["<|system|>\n{{content}}"]),
-    format_function=FunctionFormatter(slots=[], tool_format="glm4"),
-    format_observation=StringFormatter(slots=["<|observation|>\n{{content}}<|assistant|>\n"]),
-    format_tools=ToolFormatter(tool_format="glm4"),
-    format_prefix=EmptyFormatter(slots=["[gMASK]<sop>"]),
-    default_system=(
-        "你是一位智能编程助手，你叫CodeGeeX。你会为用户回答关于编程、代码、计算机方面的任何问题，"
-        "并提供格式规范、可以执行、准确安全的代码，并在必要时提供详细的解释。"
-    ),
-    stop_words=["<|user|>", "<|observation|>"],
-    efficient_eos=True,
 )
 
 
@@ -690,7 +693,7 @@ _register_template(
 
 
 _register_template(
-    name="llama3",
+    name="llama3_new",
     format_user=StringFormatter(
         slots=[
             (
@@ -892,7 +895,8 @@ _register_template(
 
 _register_template(
     name="zephyr",
-    format_user=StringFormatter(slots=["<|user|>\n{{content}}", {"eos_token"}, "<|assistant|>\n"]),
+    format_user=StringFormatter(slots=["<|user|>\n{{content}}", {"eos_token"}, "<|assistant|>"]),
+    format_assistant=StringFormatter(slots=["\n{{content}}", {"eos_token"}]),
     format_system=StringFormatter(slots=["<|system|>\n{{content}}", {"eos_token"}]),
     default_system="You are Zephyr, a helpful assistant.",
 )

@@ -6,14 +6,8 @@
      "file_name": "tmp_eval.json"
   },
   "tmp_dpo":{
-     "file_name": "tmp_dpo.json",
-     "ranking": true,
-     "columns": {
-       "prompt": "instruction",
-       "query": "input",
-       "chosen": "chosen",
-       "rejected": "rejected"
-    }
+     "file_name": "806_error_correct.json",
+     "ranking": true
   },
   "identity": {
     "file_name": "identity.json"

@@ -129,6 +129,12 @@ def load_model(
     """
     init_kwargs = _get_init_kwargs(model_args)
     config = load_config(model_args)
+    if model_args.export_dir is not None and model_args.merge_dtype == "fp16":
+        print("****************以fp16加载模型*******************")
+        setattr(config, "torch_dtype", "float16")
+    if model_args.export_dir is not None and model_args.merge_dtype == "bf16":
+        print("****************以bf16加载模型******************")
+        setattr(config, "torch_dtype", "bfloat16")
     patch_config(config, tokenizer, model_args, init_kwargs, is_trainable)
 
     model = None

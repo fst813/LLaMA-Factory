@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Dict
 
 import numpy as np
 import torch
+from transformers import EvalPrediction
 from transformers.utils import is_jieba_available, is_nltk_available
 
 from ...extras.constants import IGNORE_INDEX
@@ -28,7 +29,7 @@ from ...extras.packages import is_rouge_available
 
 
 if TYPE_CHECKING:
-    from transformers import EvalPrediction, PreTrainedTokenizer
+    from transformers import PreTrainedTokenizer
 
 
 if is_jieba_available():

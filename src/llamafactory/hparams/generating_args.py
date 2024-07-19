@@ -23,21 +23,21 @@ class GeneratingArguments:
     """
 
     do_sample: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Whether or not to use sampling, use greedy decoding otherwise."},
     )
     temperature: float = field(
-        default=0.95,
+        default=None,
         metadata={"help": "The value used to modulate the next token probabilities."},
     )
     top_p: float = field(
-        default=0.7,
+        default=None,
         metadata={
             "help": "The smallest set of most probable tokens with probabilities that add up to top_p or higher are kept."
         },
     )
     top_k: int = field(
-        default=50,
+        default=1,
         metadata={"help": "The number of highest probability vocabulary tokens to keep for top-k filtering."},
     )
     num_beams: int = field(

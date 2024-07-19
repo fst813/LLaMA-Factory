@@ -18,7 +18,6 @@ gemma2_openai_api_base = "http://10.167.193.30:8082/v1"
 mistral_openai_api_base = "http://10.167.193.30:8083/v1"
 
 
-
 def read_json(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -40,6 +39,7 @@ def get_infer_llama3(prompt):
     )
     return chat_response
 
+
 def get_infer_gemma(prompt):
     client = OpenAI(
         api_key=openai_api_key,
@@ -54,6 +54,7 @@ def get_infer_gemma(prompt):
         temperature=0,
     )
     return chat_response
+
 
 def get_infer_llama3(prompt):
     client = OpenAI(
@@ -82,12 +83,11 @@ if __name__ == '__main__':
             result_mistral = get_infer_llama3(prompt)
         except Exception as e:
             print(e)
-            item["predict"] = "error:"+str(e)
+            item["predict"] = "error:" + str(e)
             data_final.append(item)
             continue
-        item["predict"] = [result_llama3.choices[0].message.content, result_gemma.choices[0].message.content, result_mistral.choices[0].message.content]
+        item["predict"] = [result_llama3.choices[0].message.content, result_gemma.choices[0].message.content,
+                           result_mistral.choices[0].message.content]
         data_final.append(item)
     with open("806_predict.json", 'w', encoding='utf-8') as f:
         json.dump(data_final, f, ensure_ascii=False, indent=4)
-
-

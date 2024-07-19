@@ -114,7 +114,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         padded_tensor[:, -src_tensor.shape[-1] :] = src_tensor  # adopt left-padding
         return padded_tensor.contiguous()  # in contiguous memory
 
-    def save_predictions(self, dataset: "Dataset", predict_results: "PredictionOutput") -> None:
+    def save_predictions(self, dataset: "Dataset", predict_results: "PredictionOutput", model_args: "ModelArguments") -> None:
         r"""
         Saves model predictions to `output_dir`.
 
@@ -123,7 +123,17 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         if not self.is_world_process_zero():
             return
 
-        output_prediction_file = os.path.join(self.args.output_dir, "generated_predictions.jsonl")
+        if model_args.adapter_name_or_path is None:
+            if model_args.model_name_or_path.split("-")[-1].isdigit():
+                file_name = "checkpoint-" + str(model_args.model_name_or_path.split("-")[-1]) + ".jsonl"
+            else:
+                if model_args.model_name_or_path[-1] == "/":
+                    model_args.model_name_or_path = model_args.model_name_or_path[:-1]
+                file_name = "predict_" + str(model_args.model_name_or_path).split("/")[-1] + ".jsonl"
+        else:
+            checkpoint_num = model_args.adapter_name_or_path[0].split("-")[-1]
+            file_name = f"checkpoint-{checkpoint_num}.jsonl" if checkpoint_num.isdigit() else "checkpoint-final.jsonl"
+        output_prediction_file = os.path.join(self.args.output_dir, file_name)
         logger.info(f"Saving prediction results to {output_prediction_file}")
 
         labels = np.where(
